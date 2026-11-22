@@ -1,0 +1,83 @@
+<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Геометрия: отметки на чертеже</title><style>
+body{font:17px/1.45 system-ui;max-width:720px;margin:20px auto;padding:0 14px;color:#182b40}h1{font-size:26px;margin:.3em 0}h2{font-size:20px;margin:.8em 0 .2em}button{font:inherit;padding:8px 12px;margin:3px;border:1px solid #879bb1;border-radius:8px;background:white;color:inherit;cursor:pointer}button:disabled{opacity:.45;cursor:default}button[aria-pressed=true]{background:#dceaff;border-color:#2f62a8}#nav button{min-width:40px;padding:6px 8px}#nav button.done{background:#e3f4e6;border-color:#4f9a5c}#nav button.done[aria-pressed=true]{background:#c9ebd0;border-width:2px}button:focus-visible{outline:3px solid #276ac1}svg{width:100%;max-height:360px;background:#f1f5fa;border-radius:12px}svg text{font:17px system-ui;fill:#182b40;pointer-events:none}svg text.lab{font:600 15px system-ui;fill:#164fa4;paint-order:stroke;stroke:#f1f5fa;stroke-width:5px}.hit{fill:none;stroke:transparent;stroke-width:16;cursor:pointer;outline:none!important;-webkit-tap-highlight-color:transparent}.hit.side{stroke-width:10}.hit:hover,.hit:focus-visible{stroke:#477dc875}.mark{stroke:#164fa4;stroke-width:3;fill:none;pointer-events:none}.given{stroke:#5b6f86}.right{stroke:#164fa4;fill:#f1f5fa;stroke-width:1.5;pointer-events:none}small{color:#46586d}#msg{min-height:3em}
+</style><h1>Геометрия: отметки на чертеже</h1><nav id="nav" aria-label="Задания"></nav><small id="progress"></small><h2 id="sec"></h2><p id="task"></p><p><small id="help"></small></p><svg id="pic" viewBox="0 0 400 252" role="img"></svg><p><button id="check">Проверить</button><button id="clear">Сбросить</button><button id="prev">Назад</button><button id="next">Дальше</button> <button id="reset">Сбросить прогресс</button> </p><p id="msg" aria-live="polite"></p><script>
+const $=id=>document.getElementById(id);
+const nS=s=>[...s].sort().join(''), nA=s=>{let e=[s[0],s[2]].sort();return e[0]+s[1]+e[1]};
+const NAMES=['','медиана','биссектриса','высота'];
+const F={
+isoB:{p:{A:[50,210],B:[190,40],C:[340,210]},s:['AB','BC','CA']},
+isoTop:{p:{A:[60,65],C:[340,65],B:[200,215]},s:['AB','BC','CA']},
+alt:{p:{A:[50,210],D:[190,210],C:[350,210],B:[190,40]},s:['AD','DC','AB','BC','BD']},
+isoM:{p:{A:[200,35],B:[45,210],M:[200,210],C:[355,210]},s:['AB','AC','AM','BM','MC']},
+cev:{p:{A:[250,35],B:[40,215],C:[360,215],D:[250,215],E:[294,107],F:[145,125]},s:['AF','FB','AE','EC','BD','DC','AD','BE','CF']},
+cev2:{p:{R:[120,35],P:[55,210],Q:[350,210],S:[120,210],T:[235,122.5],U:[87.5,122.5]},s:['PS','SQ','QT','TR','PU','UR','RS','PT','QU']},
+bis:{p:{B:[110,40],A:[45,210],D:[200,210],C:[355,210]},s:['AB','BC','AD','DC','BD']},
+obt:{p:{A:[100,45],H:[100,210],B:[165,210],C:[355,210]},s:['AH','AB','AC','BC'],d:['HB']},
+pair1:{p:{A:[40,200],B:[95,50],C:[180,190],D:[235,200],E:[320,50],F:[390,185]},s:['AB','BC','CA','DE','EF','FD'],split:1},
+pair2:{p:{A:[100,45],B:[35,205],C:[185,195],D:[300,45],E:[235,200],F:[385,190]},s:['AB','BC','CA','DE','EF','FD'],split:1},
+pair3:{p:{A:[70,50],B:[50,200],C:[190,190],D:[330,60],E:[310,210],F:[190,70]},s:['AB','BC','CA','DE','EF','FD'],split:1},
+iso:{p:{A:[200,35],B:[60,210],C:[340,210]},s:['AB','BC','CA']},
+isoK:{p:{A:[200,35],B:[45,210],M:[200,210],C:[355,210],K:[200,120]},s:['AB','AC','AK','KM','BM','MC','BK','KC'],lab:{K:[15,-3]}},
+dbl:{p:{A:[110,25],B:[45,128],C:[355,128],D:[290,231],M:[200,128]},s:['AB','AC','BM','MC','AM','MD','DC'],lab:{M:[14,-10]}}};
+const SIX=['BAM','CAM','ABM','ACM','AMB','AMC'];
+const T=[
+{sec:'Обозначения',fig:'isoB',max:1,hs:['AB','BC','CA'],ha:[],text:'В треугольнике ABC стороны AB и BC равны. Покажи это на чертеже.',exp:{s:[['AB','BC']]},hint:'Здесь нужны две стороны, которые сходятся в вершине B.',ok:'Верно: одинаковые засечки означают, что отрезки равны.'},
+{sec:'Обозначения',fig:'isoTop',max:1,hs:[],ha:['BAC','ABC','ACB'],text:'В треугольнике ABC угол A равен углу C. Отметь эти углы.',exp:{a:[['BAC','ACB']]},hint:'В записи угла буква в середине — вершина. Нужны углы при вершинах A и C.',ok:'Верно: равные углы отмечают одинаковыми дугами.'},
+{sec:'Обозначения',fig:'alt',max:1,rv:'*',hs:[],ha:['BAD','BCD','ABD','CBD','ADB','BDC'],text:'Известно, что BD ⟂ AC. Отметь прямой угол.',exp:{r:['ADB','BDC']},hint:'Перпендикуляр BD пересекает сторону AC.',ok:'Верно: BD ⟂ AC, значит, углы ADB и BDC прямые.'},
+{sec:'Обозначения',fig:'isoM',max:1,hs:['AB','AC','AM','BM','MC'],ha:[],text:'Дано: BM = MC. Отметь равные отрезки.',exp:{s:[['BM','MC']]},hint:'Отмечай только то, что сказано в условии.',ok:'Верно'},
+{sec:'Медиана, биссектриса, высота',fig:'bis',max:1,rv:[],hs:[],ha:['ABD','CBD','BAD','BCD','ADB','BDC'],text:'BD — биссектриса угла ABC. Отметь равные углы.',exp:{a:[['ABD','CBD']]},hint:'Биссектриса делит пополам угол. Угол ABC выходит из вершины B, значит, и равные части ищи при B.',ok:'Верно: ∠ABD = ∠DBC.'},
+{sec:'Медиана, биссектриса, высота',fig:'cev2',max:3,label:{RS:'высота',PT:'биссектриса',QU:'медиана'},labfrac:{RS:.6,PT:.8,QU:.25},given:{s:[[['PU','UR'],1]],a:[[['RPT','TPQ'],1]],r:['RSP']},hs:[],ha:[],text:'На чертеже проведены три отрезка: RS, PT и QU. Определи по отметкам, какой из них медиана, какой биссектриса и какой высота. Нажимай на отрезок, пока не появится нужное название.',exp:{},hint:'Квадратик — это перпендикуляр, дуги означают равные углы, а засечки — равные отрезки.',ok:'Верно: RS ⟂ PQ — высота, ∠RPT = ∠TPQ — биссектриса, PU = UR — медиана.'},
+{sec:'Медиана, биссектриса, высота',fig:'cev',max:1,rv:['D'],hs:['AF','FB','AE','EC','BD','DC'],ha:['ABE','EBC','ADB','ADC','ACF','FCB'],text:'На чертеже проведены три отрезка: AD ⟂ BC, BE — биссектриса угла B, CF — медиана. Отметь на чертеже всё, что это означает.',exp:{s:[['AF','FB']],a:[['ABE','EBC']],r:['ADB','ADC']},hint:'У каждого отрезка свой вид отметки: высота даёт прямой угол, биссектриса делит угол, а медиана делит сторону.',ok:'Верно: AD ⟂ BC, ∠ABE = ∠EBC и AF = FB.'},
+{sec:'Медиана, биссектриса, высота',fig:'obt',max:1,rv:'*',hs:[],ha:['AHB','HAB','ABH','ABC','ACB'],text:'Треугольник тупоугольный. AH — высота, проведённая к прямой BC. Отметь прямой угол.',exp:{r:['AHB']},hint:'Прямой угол образуют высота AH и прямая BC, поэтому ищи его у точки H.',ok:'Верно: высота может лежать вне треугольника'},
+{sec:'Первый признак',fig:'pair1',max:2,rv:[],hs:['AB','BC','CA','DE','EF','FD'],ha:['BAC','ABC','ACB','EDF','DEF','DFE'],text:'Даны два треугольника: AB = DE, BC = EF и ∠B = ∠E. Отметь равные пары.',exp:{s:[['AB','DE'],['BC','EF']],a:[['ABC','DEF']]},hint:'Одинаковые отметки нужны только на соответствующих элементах.',ok:'Верно: две стороны и угол между ними равны, поэтому треугольники равны по первому признаку.'},
+{sec:'Первый признак',fig:'pair2',max:1,rv:[],given:{s:[[['AB','DE'],1],[['AC','DF'],2]]},hs:[],ha:['BAC','ABC','ACB','EDF','DEF','DFE'],text:'У треугольников ABC и DEF уже отмечены две пары равных сторон: AB = DE и AC = DF. Отметь угол, равенство которого позволит применить первый признак.',exp:{a:[['BAC','EDF']]},hint:'Угол должен быть между двумя равными сторонами. Найди вершину, где пересекаются AB и AC.',ok:'Верно.'},
+{sec:'Первый признак',fig:'pair3',max:1,rv:[],given:{s:[[['AB','DE'],2]],a:[[['ABC','EDF'],1]]},hs:['BC','CA','DF','EF'],ha:[],text:'Известно, что AB = DE и ∠B = ∠D. Какую пару сторон нужно добавить, чтобы можно было применить первый признак?',exp:{s:[['BC','DF']]},hint:'Нужна вторая сторона угла B и вторая сторона угла D.',ok:'Верно.'},
+{sec:'Равнобедренный треугольник',fig:'iso',max:1,rv:[],hs:['AB','BC','CA'],ha:['BAC','ABC','ACB'],text:'Треугольник ABC равнобедренный: AB = AC. Отметь равные стороны и равные углы.',exp:{s:[['AB','AC']],a:[['ABC','ACB']]},hint:'Равные стороны — боковые, а основание — BC. Углы при основании равны.',ok:'Верно.'},
+{sec:'Равнобедренный треугольник',fig:'isoK',max:2,rv:[],hs:['AB','AC','BM','MC','BK','CK'],ha:['BAK','CAK','ABK','ACK','AKB','AKC'],allow:{s:[['AB','AC'],['BM','CM'],['BK','CK']],a:[['BAK','CAK'],['ABK','ACK'],['AKB','AKC']]},text:'В равнобедренном треугольнике ABC (AB = AC) проведена медиана AM к основанию, K — любая точка на AM. Хотим доказать, что треугольники ABK и ACK равны по первому признаку. Отметь равенства, которые для этого нужны. Общая сторона AK отметки не требует.',exp:{s:[['AB','AC']],a:[['BAK','CAK']]},hint:'Равенство углов следует из свойства медианы равнобедренного треугольника.',ok:'Верно.'},
+{sec:'Равнобедренный треугольник',fig:'isoK',max:2,rv:['M'],hs:['AB','AC','BM','MC','BK','CK'],ha:['BMK','CMK','BAK','CAK','ABK','ACK'],allow:{s:[['AB','AC'],['BM','CM']],a:[['BAK','CAK'],['ABK','ACK']]},forbid:{s:[['BK','CK']]},forbMsg:'BK = CK — это то, что нужно доказать, поэтому пока отмечать его нельзя.',text:'В равнобедренном треугольнике ABC (AB = AC) AM — медиана к основанию, K — точка на AM. Докажи, что BK = CK, через равенство треугольников BMK и CMK. Отметь равенства, нужные для первого признака, а BK = CK не отмечай. Прямые углы отмечай с обеих сторон от AM.',exp:{s:[['BM','CM']],r:['BMK','CMK'],rAll:1},hint:'Нужны BM = CM (дано), общая сторона MK и угол между ними. Углы при M равны, потому что в равнобедренном треугольнике медиана к основанию является и высотой.',ok:'Верно: BM = CM, MK общая и ∠BMK = ∠CMK = 90°. Значит, треугольники BMK и CMK равны, откуда BK = CK.'},
+{sec:'Первый признак и медиана',fig:'dbl',max:2,rv:[],ar:26,hs:['BM','MC','AM','MD'],ha:['AMB','BMD','DMC','AMC'],allow:{s:[['BM','CM'],['AM','DM']],a:[['AMB','CMD'],['BMD','AMC']]},text:'AM — медиана треугольника ABC. На продолжении AM за точку M отложен отрезок MD, равный AM. Докажи, что треугольники ABM и DCM равны по первому признаку. Отметь нужные равенства.',exp:{s:[['BM','CM'],['AM','DM']],a:[['AMB','CMD']]},hint:'Одна пара равных отрезков следует из того, что AM — медиана, другая дана построением. Угол между этими отрезками при M нужно выбрать на пересечении двух прямых.',ok:'Верно: BM = MC (медиана), AM = MD (по построению) и ∠AMB = ∠DMC (вертикальные углы). Значит, треугольники ABM и DCM равны по первому признаку.'}];
+let cur=0,lv={},done=new Set();try{done=new Set(JSON.parse(localStorage.getItem('geom15c')||'[]'))}catch(e){}
+const U=(a,b)=>{let x=b[0]-a[0],y=b[1]-a[1],d=Math.hypot(x,y);return[x/d,y/d]},add=(a,u,t)=>[a[0]+u[0]*t,a[1]+u[1]*t],pt=a=>a.map(v=>+v.toFixed(2)).join(' '),sg=(a,b)=>`M${pt(a)} L${pt(b)}`,pa=(d,c)=>`<path d="${d}" ${c}/>`;
+let P,t;
+const isR=id=>t.rv==='*'||(t.rv||[]).includes(id[1]);
+function vec(id){let a=P[id[1]];return[a,U(a,P[id[0]]),U(a,P[id[2]])]}
+function arc(id,r){let[a,u,v]=vec(id);return`M${pt(add(a,u,r))} A${r} ${r} 0 0 ${+(u[0]*v[1]-u[1]*v[0]>0)} ${pt(add(a,v,r))}`}
+function ticks(id,n,c){let a=P[id[0]],b=P[id[1]],u=U(a,b),m=[(a[0]+b[0])/2,(a[1]+b[1])/2],v=[-u[1],u[0]],o='';for(let j=0;j<n;j++){let q=add(m,u,(j-(n-1)/2)*7);o+=pa(sg(add(q,v,-7),add(q,v,7)),`class="mark ${c}"`)}return o}
+function arcs(id,n,c){let o='',r=(t.ar||30);for(let j=0;j<n;j++)o+=pa(arc(id,r-4+j*5),`class="mark ${c}"`);return o}
+function sq(id,c){let[a,u,v]=vec(id);if(Math.abs(u[0]*v[0]+u[1]*v[1])<1e-6){let x=add(a,u,15);return pa(`${sg(x,add(x,v,15))} L${pt(add(a,v,15))}`,`class="mark ${c||''}"`)}let z=[u[0]+v[0],u[1]+v[1]],d=Math.hypot(...z),q=add(a,z,23/d);return`<rect x="${q[0]-4}" y="${q[1]-4}" width="8" height="8" class="right"/>`}
+function draw(focus){let o='';
+for(let s of F[t.fig].s)o+=pa(sg(P[s[0]],P[s[1]]),'stroke="#24384d" stroke-width="2" fill="none"');
+for(let s of F[t.fig].d||[])o+=pa(sg(P[s[0]],P[s[1]]),'stroke="#24384d" stroke-width="2" stroke-dasharray="6 5" fill="none"');
+let keys=Object.keys(P),cl=k=>F[t.fig].split?('DEF'.includes(k)?1:0):0,lab=F[t.fig].lab||{};
+for(let k of keys){let q;if(lab[k])q=[P[k][0]+lab[k][0],P[k][1]+lab[k][1]];else{let g=keys.filter(x=>cl(x)===cl(k)),c=[g.reduce((s,x)=>s+P[x][0],0)/g.length,g.reduce((s,x)=>s+P[x][1],0)/g.length];q=add(P[k],U(c,P[k]),17)}o+=`<text x="${q[0]}" y="${q[1]+5}" text-anchor="middle">${k}</text>`}
+let G=t.given||{};(G.s||[]).forEach(([g,n])=>g.forEach(s=>o+=ticks(s,n,'given')));(G.a||[]).forEach(([g,n])=>g.forEach(s=>o+=arcs(s,n,'given')));(G.r||[]).forEach(s=>o+=sq(s,'given'));
+for(let[id,n]of Object.entries(lv)){if(!n||t.label)continue;o+=id.length===2?ticks(id,n,''):isR(id)?sq(id):arcs(id,n,'')}
+for(let s of t.hs)o+=hit(nS(s),sg(P[s[0]],P[s[1]]),'Отрезок '+s,1);
+for(let a of t.ha)o+=hit(nA(a),arc(a,(t.ar||30)+4),'Угол '+a,0);
+for(let s of Object.keys(t.label||{})){o+=hit(s,sg(P[s[0]],P[s[1]]),'Отрезок '+s,1);let m=add(P[s[0]],U(P[s[0]],P[s[1]]),Math.hypot(P[s[1]][0]-P[s[0]][0],P[s[1]][1]-P[s[0]][1])*((t.labfrac||{})[s]||.6));if(lv[s])o+=`<text class="lab" x="${m[0]+8}" y="${m[1]}">${NAMES[lv[s]]}</text>`}
+$('pic').innerHTML=o;$('pic').setAttribute('aria-label','Чертёж, задание '+(cur+1));
+for(let el of $('pic').querySelectorAll('[data-k]')){let k=el.dataset.k,run=kb=>{let m=(k.length===3&&isR(k))?1:t.max;lv[k]=((lv[k]||0)+1)%(m+1);$('msg').textContent='';draw(kb?k:null)};el.onclick=()=>run(0);el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();run(1)}};if(k===focus)el.focus()}}
+function hit(k,d,l,side){return pa(d,`class="hit ${side?'side':''}" data-k="${k}" tabindex="0" role="button" aria-label="${l}, ${['нет отметки','отмечено','отмечено дважды','отмечено трижды'][lv[k]||0]}"`)}
+const sub=(a,b)=>a.every(x=>b.includes(x)),same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+function groups(l){let m={};l.forEach(([id,n])=>(m[n]=m[n]||[]).push(id));return Object.values(m).map(g=>g.sort())}
+function kind(k,nf,st){let e=t.exp,req=(e[k]||[]).map(g=>g.map(nf).sort());
+if(t.allow&&t.allow[k]){let cls=t.allow[k].map(g=>g.map(nf)),fb=((t.forbid||{})[k]||[]).map(g=>g.map(nf)),forb=fb.some(f=>st.some(g=>f.filter(x=>g.includes(x)).length>1)),inv=!st.every(g=>cls.some(c=>sub(g,c)));return{forb,bad:inv,ok:!forb&&!inv&&req.every(r=>st.some(g=>sub(r,g)))}}
+return{ok:same(st.map(g=>g.join(',')).sort(),req.map(g=>g.join(',')).sort())}}
+function verdict(){if(t.label){let ks=Object.keys(t.label),any=ks.some(k=>lv[k]);return{any,ok:ks.every(k=>NAMES[lv[k]||0]===t.label[k]),bad:['названия отрезков']}}
+let S=[],A=[],R=[];for(let[id,n]of Object.entries(lv)){if(!n)continue;if(id.length===2)S.push([id,n]);else isR(id)?R.push(id):A.push([id,n])}
+let rs=kind('s',nS,groups(S)),ra=kind('a',nA,groups(A)),e=t.exp,ex=(e.r||[]).map(nA),rr=e.r?(R.length>0&&R.every(x=>ex.includes(x))&&(!e.rAll||ex.every(x=>R.includes(x)))):R.length===0;
+let bad=[];if(!rs.ok)bad.push('отрезки');if(!ra.ok)bad.push('углы');if(!rr)bad.push('прямой угол');
+return{any:S.length+A.length+R.length>0,ok:!bad.length,bad,forb:rs.forb||ra.forb,inv:rs.bad||ra.bad}}
+function show(n){cur=n;t=T[n];P=F[t.fig].p;lv={};$('msg').textContent='';$('sec').textContent=t.sec;$('task').textContent=t.text;
+$('help').textContent=(t.label?'Нажатие на отрезок по кругу меняет название.':'Нажми на отрезок или внутрь угла около вершины, чтобы поставить отметку. Повторное нажатие меняет или убирает её.')+' '+(t.help2||'');
+$('prev').disabled=!n;$('next').disabled=n===T.length-1;[...$('nav').children].forEach((b,j)=>b.setAttribute('aria-pressed',j===n));upd();draw()}
+function upd(){$('progress').textContent=`Задание ${cur+1} из ${T.length}. Выполнено: ${done.size}`;[...$('nav').children].forEach((b,j)=>b.className=done.has(j)?'done':'')}
+T.forEach((_,j)=>{let b=document.createElement('button');b.textContent=j+1;b.setAttribute('aria-label','Задание '+(j+1));b.onclick=()=>show(j);$('nav').append(b)});
+$('clear').onclick=()=>show(cur);$('prev').onclick=()=>show(cur-1);$('next').onclick=()=>show(cur+1);
+$('check').onclick=()=>{let v=verdict();if(!v.any){$('msg').textContent='Сначала поставь отметки на чертеже.';return}
+if(v.forb){$('msg').textContent=t.forbMsg;return}
+if(v.ok){done.add(cur);try{localStorage.setItem('geom15c',JSON.stringify([...done]))}catch(x){}$('msg').textContent=t.ok;upd();return}
+$('msg').textContent='Пока не совпадает: '+v.bad.join(', ')+'. '+(v.inv?'Одинаковыми отметками обозначают только равные элементы. ':'')+t.hint};
+$('reset').onclick=()=>{if(confirm('Стереть весь прогресс?')){try{localStorage.removeItem('geom15c')}catch(e){}done.clear();upd()}};
+show(0);
+</script></html>
